@@ -3,448 +3,475 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>CodePath BR — Protótipo</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+<title>CodePath BR — Unidade 1: Lógica</title>
 <style>
   :root{
-    --bg:#f4f3f8;
-    --surface:#ffffff;
-    --ink:#1a1726;
-    --muted:#6b6580;
-    --line:#e4e1ee;
-    --indigo:#5b4bd6;
-    --indigo-soft:#ece9fb;
-    --green:#13a463;
-    --green-soft:#e3f6ec;
-    --red:#d6453b;
-    --red-soft:#fbe8e6;
+    --bg:#f4f3f8; --surface:#fff; --ink:#1a1726; --muted:#6b6580; --line:#e4e1ee;
+    --indigo:#5b4bd6; --indigo-soft:#ece9fb; --indigo-2:#7a6bff;
+    --green:#13a463; --green-soft:#e3f6ec; --green-line:#bce6cf;
+    --red:#d6453b; --red-soft:#fbe8e6; --red-line:#f2c4bf;
     --amber:#e8a01c;
-    --code-bg:#1c1830;
-    --code-ink:#e8e6f5;
-    --mono:'SF Mono',ui-monospace,'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+    --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{
-    background:var(--bg);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;line-height:1.5;
-    display:flex;justify-content:center;
-  }
-  .app{
-    width:100%;max-width:480px;min-height:100vh;background:var(--surface);
-    display:flex;flex-direction:column;position:relative;
-  }
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5;display:flex;justify-content:center}
+  .app{width:100%;max-width:480px;min-height:100vh;background:var(--surface);
+    display:flex;flex-direction:column;position:relative}
   @media(min-width:520px){.app{box-shadow:0 0 60px rgba(40,30,80,.08)}}
 
-  /* ---------- TOP BAR (gamification) ---------- */
-  .topbar{
-    display:flex;align-items:center;gap:14px;
-    padding:14px 18px;border-bottom:1px solid var(--line);
-    position:sticky;top:0;background:var(--surface);z-index:5;
-  }
-  .lives{display:flex;gap:3px;font-size:18px;line-height:1}
-  .heart{transition:transform .25s, opacity .25s}
-  .heart.lost{opacity:.22;transform:scale(.8)}
-  .streak{
-    display:flex;align-items:center;gap:5px;font-weight:700;font-size:15px;
-    color:var(--amber);
-  }
-  .xp-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
-  .xp-top{display:flex;justify-content:space-between;font-size:11px;
-    color:var(--muted);font-weight:600;letter-spacing:.02em}
-  .xp-bar{height:9px;background:var(--indigo-soft);border-radius:99px;overflow:hidden}
-  .xp-fill{height:100%;width:0;background:linear-gradient(90deg,#7a6bff,var(--indigo));
-    border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
-  .xp-fill.bump{animation:bump .5s ease}
-  @keyframes bump{0%{filter:brightness(1)}40%{filter:brightness(1.5)}100%{filter:brightness(1)}}
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:5}
+  .close{font-size:22px;color:var(--muted);background:none;border:none;cursor:pointer;
+    line-height:1;padding:2px 6px}
+  .progress{flex:1;height:11px;background:var(--indigo-soft);border-radius:99px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--indigo-2),var(--indigo));
+    border-radius:99px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .lives{display:flex;gap:2px;font-size:16px}
+  .heart{transition:.25s}.heart.lost{opacity:.22;transform:scale(.8)}
 
-  /* ---------- LESSON BODY ---------- */
-  .body{flex:1;padding:22px 18px 120px;overflow-y:auto}
-  .eyebrow{font-family:var(--mono);font-size:12px;color:var(--indigo);
-    font-weight:600;letter-spacing:.04em;margin-bottom:6px}
-  .prompt-title{font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
-  .prompt-text{color:var(--muted);font-size:15px;margin-bottom:8px}
-  .prompt-text code{font-family:var(--mono);background:var(--indigo-soft);
-    color:var(--indigo);padding:1px 6px;border-radius:5px;font-size:13px}
+  /* body */
+  .body{flex:1;padding:24px 18px 130px;overflow-y:auto}
+  .crumb{font-family:var(--mono);font-size:11px;color:var(--indigo);font-weight:600;
+    letter-spacing:.04em;margin-bottom:14px;text-transform:uppercase}
 
-  .hint-box{
-    background:var(--green-soft);border:1px solid #bce6cf;border-radius:12px;
-    padding:12px 14px;margin:14px 0;font-size:14px;color:#0c6b41;
-    display:none;
-  }
-  .hint-box.show{display:block;animation:slidein .3s ease}
-  @keyframes slidein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  /* concept screen */
+  .concept-icon{font-size:42px;margin-bottom:12px}
+  .h-title{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+  .concept-text{font-size:16px;color:var(--ink);margin-bottom:18px;line-height:1.6}
+  .example{background:var(--indigo-soft);border-radius:14px;padding:14px 16px;margin-bottom:8px}
+  .example .lbl{font-size:11px;font-weight:700;color:var(--indigo);letter-spacing:.05em;
+    text-transform:uppercase;margin-bottom:5px}
+  .example .txt{font-size:15px;color:var(--ink)}
+  .example .txt b{color:var(--indigo)}
 
-  /* ---------- CODE EDITOR ---------- */
-  .editor-wrap{
-    background:var(--code-bg);border-radius:14px;overflow:hidden;
-    margin-top:14px;box-shadow:0 6px 20px rgba(28,24,48,.18);
-  }
-  .editor-head{display:flex;align-items:center;gap:7px;padding:11px 14px;
-    border-bottom:1px solid rgba(255,255,255,.07)}
-  .dot{width:11px;height:11px;border-radius:50%}
-  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
-  .editor-name{margin-left:auto;font-family:var(--mono);font-size:11px;
-    color:rgba(232,230,245,.5)}
-  .editor{
-    width:100%;background:transparent;border:none;outline:none;resize:none;
-    color:var(--code-ink);font-family:var(--mono);font-size:14px;line-height:1.7;
-    padding:14px;min-height:130px;tab-size:4;
-  }
-  .editor::selection{background:rgba(123,107,255,.4)}
+  /* question */
+  .q-text{font-size:18px;font-weight:700;margin-bottom:6px;line-height:1.35}
+  .q-sub{font-size:14px;color:var(--muted);margin-bottom:18px}
 
-  /* ---------- OUTPUT ---------- */
-  .output{
-    font-family:var(--mono);font-size:13px;border-radius:12px;padding:13px 14px;
-    margin-top:12px;white-space:pre-wrap;word-break:break-word;display:none;
-  }
-  .output.show{display:block;animation:slidein .25s ease}
-  .output.ok{background:var(--green-soft);color:#0c6b41;border:1px solid #bce6cf}
-  .output.err{background:var(--red-soft);color:#a8261d;border:1px solid #f2c4bf}
+  /* options (multiple choice / VF) */
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{background:var(--surface);border:2px solid var(--line);border-radius:14px;
+    padding:15px 16px;font-size:15px;font-weight:600;cursor:pointer;text-align:left;
+    transition:.12s;color:var(--ink);display:flex;align-items:center;gap:12px}
+  .opt:hover{border-color:var(--indigo-2)}
+  .opt .key{width:26px;height:26px;border-radius:7px;background:var(--indigo-soft);
+    color:var(--indigo);display:grid;place-items:center;font-weight:800;font-size:13px;flex:0 0 auto}
+  .opt.sel{border-color:var(--indigo);background:var(--indigo-soft)}
+  .opt.correct{border-color:var(--green);background:var(--green-soft)}
+  .opt.correct .key{background:var(--green);color:#fff}
+  .opt.wrong{border-color:var(--red);background:var(--red-soft)}
+  .opt.wrong .key{background:var(--red);color:#fff}
+  .opt.disabled{pointer-events:none;opacity:.55}
+  .opts.vf{flex-direction:row}
+  .opts.vf .opt{flex:1;justify-content:center;font-size:16px}
 
-  /* ---------- FOOTER ACTIONS ---------- */
-  .footer{
-    position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);
-    padding:14px 18px;display:flex;flex-direction:column;gap:10px;
-  }
-  .row{display:flex;gap:10px}
-  .btn{
-    flex:1;border:none;border-radius:12px;padding:14px;font-family:var(--sans);
-    font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s, filter .15s;
-  }
-  .btn:active{transform:translateY(1px)}
-  .btn-run{background:var(--indigo);color:#fff}
-  .btn-run:disabled{background:#b6aef0;cursor:wait}
-  .btn-ghost{background:var(--indigo-soft);color:var(--indigo);flex:0 0 auto;padding:14px 18px}
-  .btn-next{background:var(--green);color:#fff;display:none}
-  .btn-next.show{display:block}
+  /* order exercise */
+  .order-hint{font-size:13px;color:var(--muted);margin-bottom:12px}
+  .order-list{display:flex;flex-direction:column;gap:9px}
+  .order-item{background:var(--surface);border:2px solid var(--line);border-radius:12px;
+    padding:13px 14px;font-size:15px;font-weight:600;cursor:grab;display:flex;
+    align-items:center;gap:10px;user-select:none;transition:border-color .12s}
+  .order-item:active{cursor:grabbing}
+  .order-item.dragging{opacity:.4;border-color:var(--indigo)}
+  .order-item .grip{color:var(--muted);font-size:18px;flex:0 0 auto}
+  .order-item .num{width:22px;height:22px;border-radius:6px;background:var(--indigo-soft);
+    color:var(--indigo);display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto}
+  .order-item.correct{border-color:var(--green);background:var(--green-soft)}
+  .order-item.wrong{border-color:var(--red);background:var(--red-soft)}
 
-  /* ---------- LOADING / TOAST ---------- */
-  .loader{
-    position:absolute;inset:0;background:var(--surface);z-index:20;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-    padding:30px;text-align:center;
-  }
-  .spinner{width:38px;height:38px;border:4px solid var(--indigo-soft);
-    border-top-color:var(--indigo);border-radius:50%;animation:spin 1s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loader p{color:var(--muted);font-size:14px;max-width:260px}
-  .loader .big{color:var(--ink);font-weight:700;font-size:17px}
+  /* feedback banner */
+  .feedback{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
+    padding:18px 18px 22px;border-radius:22px 22px 0 0;transform:translateY(110%);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:15}
+  .feedback.show{transform:translateY(0)}
+  .feedback.ok{background:var(--green-soft);border-top:2px solid var(--green-line)}
+  .feedback.no{background:var(--red-soft);border-top:2px solid var(--red-line)}
+  .fb-head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;margin-bottom:4px}
+  .feedback.ok .fb-head{color:#0c6b41}
+  .feedback.no .fb-head{color:#a8261d}
+  .fb-text{font-size:14px;margin-bottom:14px}
+  .feedback.ok .fb-text{color:#0c6b41}
+  .feedback.no .fb-text{color:#a8261d}
+  .fb-btn{width:100%;border:none;border-radius:13px;padding:15px;font-size:16px;
+    font-weight:800;cursor:pointer;color:#fff;font-family:var(--sans)}
+  .feedback.ok .fb-btn{background:var(--green)}
+  .feedback.no .fb-btn{background:var(--red)}
 
-  .toast{
-    position:fixed;left:50%;top:72px;transform:translateX(-50%) translateY(-20px);
-    background:var(--ink);color:#fff;padding:11px 20px;border-radius:99px;
-    font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.35s;z-index:30;
-    display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(20,15,40,.25)
-  }
+  /* footer (check button) */
+  .footer{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+    padding:14px 18px}
+  .check{width:100%;border:none;border-radius:14px;padding:16px;font-size:16px;
+    font-weight:800;cursor:pointer;font-family:var(--sans);transition:.15s}
+  .check.ready{background:var(--indigo);color:#fff}
+  .check.idle{background:var(--indigo-soft);color:#a59ce0;cursor:not-allowed}
+  .skip{width:100%;background:none;border:none;color:var(--muted);font-weight:700;
+    font-size:14px;padding:12px;margin-top:4px;cursor:pointer;display:none}
+  .skip.show{display:block}
+
+  /* complete */
+  .done{text-align:center;padding:50px 24px;display:none}
+  .done.show{display:block;animation:pop .4s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  .done .tro{font-size:60px;margin-bottom:12px}
+  .done h2{font-size:25px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
+  .done p{color:var(--muted);margin-bottom:26px}
+  .done .stats{display:flex;gap:12px;justify-content:center;margin-bottom:30px}
+  .done .st{background:var(--indigo-soft);border-radius:16px;padding:18px 24px}
+  .done .st .n{font-size:28px;font-weight:800;color:var(--indigo)}
+  .done .st .l{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;letter-spacing:.03em}
+  .done .next-unit{background:var(--green-soft);border:1px solid var(--green-line);
+    border-radius:14px;padding:14px;color:#0c6b41;font-weight:700;font-size:14px}
+
+  .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-20px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:99px;font-weight:700;
+    font-size:13px;opacity:0;pointer-events:none;transition:.35s;z-index:30}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-  .complete{text-align:center;padding:40px 24px;display:none}
-  .complete.show{display:block;animation:slidein .4s ease}
-  .complete .trophy{font-size:56px;margin-bottom:10px}
-  .complete h2{font-size:24px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
-  .complete p{color:var(--muted);margin-bottom:24px}
-  .stat-grid{display:flex;gap:12px;justify-content:center;margin-bottom:28px}
-  .stat{background:var(--indigo-soft);border-radius:14px;padding:16px 22px}
-  .stat .n{font-size:26px;font-weight:800;color:var(--indigo)}
-  .stat .l{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- Loading overlay -->
-  <div class="loader" id="loader">
-    <div class="spinner"></div>
-    <p class="big">Preparando o Python…</p>
-    <p>Estamos carregando o motor que roda seu código direto no navegador. Só na primeira vez.</p>
-  </div>
-
-  <!-- Top bar -->
   <div class="topbar">
-    <div class="lives" id="lives">
-      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
-    </div>
-    <div class="streak"><span>🔥</span><span id="streakN">3</span></div>
-    <div class="xp-wrap">
-      <div class="xp-top"><span>NÍVEL 1</span><span id="xpLabel">0 / 100 XP</span></div>
-      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
-    </div>
+    <button class="close" id="closeBtn">✕</button>
+    <div class="progress"><div class="progress-fill" id="prog"></div></div>
+    <div class="lives" id="lives"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
   </div>
 
-  <!-- Lesson body -->
-  <div class="body" id="lessonBody">
-    <div class="eyebrow" id="eyebrow">PYTHON · CONDICIONAIS</div>
-    <h1 class="prompt-title" id="title"></h1>
-    <p class="prompt-text" id="desc"></p>
-    <div class="hint-box" id="hint"></div>
+  <div class="body" id="screen"><!-- rendered by JS --></div>
 
-    <div class="editor-wrap">
-      <div class="editor-head">
-        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="editor-name">main.py</span>
-      </div>
-      <textarea class="editor" id="editor" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  <div class="done" id="done">
+    <div class="tro">🎉</div>
+    <h2>Tópico concluído!</h2>
+    <p id="doneMsg">Você entendeu a ideia. Bora pra próxima.</p>
+    <div class="stats">
+      <div class="st"><div class="n" id="dXp">0</div><div class="l">XP</div></div>
+      <div class="st"><div class="n" id="dAcc">0%</div><div class="l">ACERTOS</div></div>
     </div>
-
-    <div class="output" id="output"></div>
+    <div class="next-unit" id="nextUnit">▶ Próximo tópico desbloqueado</div>
   </div>
 
-  <!-- Completion screen -->
-  <div class="complete" id="complete">
-    <div class="trophy">🏆</div>
-    <h2>Lição concluída!</h2>
-    <p>Você fechou o ciclo de hoje. Volte amanhã pra manter o 🔥.</p>
-    <div class="stat-grid">
-      <div class="stat"><div class="n" id="finalXp">0</div><div class="l">XP GANHO</div></div>
-      <div class="stat"><div class="n" id="finalStreak">4</div><div class="l">DIAS DE 🔥</div></div>
-    </div>
-  </div>
-
-  <!-- Footer actions -->
   <div class="footer" id="footer">
-    <div class="row">
-      <button class="btn btn-ghost" id="hintBtn">Não entendi</button>
-      <button class="btn btn-run" id="runBtn">Rodar código</button>
-    </div>
-    <button class="btn btn-next" id="nextBtn">Continuar →</button>
+    <button class="check idle" id="checkBtn" disabled>Verificar</button>
+    <button class="skip" id="skipBtn">Pular por enquanto →</button>
   </div>
 
+  <div class="feedback" id="feedback">
+    <div class="fb-head" id="fbHead"></div>
+    <div class="fb-text" id="fbText"></div>
+    <button class="fb-btn" id="fbBtn">Continuar</button>
+  </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   CodePath BR — Protótipo do loop de UMA lição
-   Stack testada aqui: Pyodide (executa Python no browser) + gamificação
-   SEM IA. Tudo determinístico. Persistência simples em memória.
-   Objetivo do teste: validar que Pyodide roda aceitável no browser real.
+   CodePath BR — Unidade 1: Lógica de Programação (protótipo navegável)
+   Tipos de tela: conceito+checagem, múltipla escolha, V/F, ordenar passos.
+   SEM código / SEM Pyodide / SEM IA. Tudo determinístico.
    ============================================================ */
 
-// ---- Conteúdo da lição (no produto real, isto vem do JSON gerado em batch) ----
-const LESSON = {
-  topic: "PYTHON · CONDICIONAIS",
-  steps: [
+// ----- Tópico 1.1 completo como conteúdo navegável -----
+const TOPIC = {
+  crumb: "MÓDULO 1 · UNIDADE 1 · TÓPICO 1.1",
+  title: "O que é um programa?",
+  screens: [
     {
-      title: "Número par ou ímpar",
-      desc: "Complete o código para imprimir <code>\"par\"</code> quando o número for divisível por 2. A variável <code>numero</code> já existe.",
-      starter: "numero = 8\n\nif numero % 2 == 0:\n    print(\"impar\")  # corrija aqui\n",
-      // validação determinística: stdout esperado
-      expect: "par",
-      hint: "O operador <code>%</code> dá o resto da divisão. Se <code>numero % 2</code> é 0, o número é PAR. Veja o texto que está sendo impresso — está trocado.",
-      xp: 30
+      type: "concept",
+      icon: "📋",
+      title: "O que é um programa?",
+      text: "Um programa é como uma receita: uma lista de instruções que o computador segue, uma por uma, na ordem que você escreveu. Ele não adivinha nada — faz exatamente o que você manda.",
+      exampleLabel: "No mundo real",
+      exampleHtml: "Uma receita de bolo é um programa: <b>misture os ovos → adicione farinha → asse 40 min</b>. Trocar a ordem estraga o bolo.",
+      // a checagem que vem logo após o conceito
+      check: {
+        q: "O que o computador faz com as instruções de um programa?",
+        opts: ["Adivinha o que você quis dizer", "Segue exatamente, na ordem escrita", "Escolhe a ordem que achar melhor"],
+        answer: 1,
+        wrongHint: "O computador não adivinha — ele obedece ao pé da letra, na ordem dada."
+      }
     },
     {
-      title: "Maior de idade",
-      desc: "Imprima <code>\"pode entrar\"</code> se <code>idade</code> for 18 ou mais. Caso contrário, imprima <code>\"não pode\"</code>.",
-      starter: "idade = 20\n\n# escreva seu if/else aqui\n",
-      expect: "pode entrar",
-      hint: "Use <code>if idade &gt;= 18:</code> numa linha, e <code>else:</code> na linha seguinte. Não esqueça os dois-pontos e a indentação (4 espaços).",
-      xp: 35
+      type: "choice",
+      q: "Qual destes é um \"programa\" no dia a dia?",
+      opts: ["Uma foto", "Um manual de montagem de móvel", "Uma música"],
+      answer: 1,
+      okMsg: "Isso! Um manual é uma sequência de passos a seguir.",
+      noMsg: "Pense no que tem passos a seguir em ordem — como um manual de montagem."
     },
     {
-      title: "Positivo, negativo ou zero",
-      desc: "A variável <code>n</code> vale -5. Imprima <code>\"negativo\"</code>. Use <code>if</code>.",
-      starter: "n = -5\n\n# seu código aqui\n",
-      expect: "negativo",
-      hint: "Compare <code>n</code> com 0. Se <code>n &lt; 0:</code> então é negativo. Lembre dos dois-pontos no fim e do print indentado embaixo.",
-      xp: 35
+      type: "vf",
+      q: "Verdadeiro ou falso?",
+      sub: "\"Um computador faz o que você QUIS dizer, mesmo se você escrever errado.\"",
+      answer: false,
+      okMsg: "Exato. Ele faz o que você ESCREVEU, não o que você quis.",
+      noMsg: "Falso! O computador segue o que está escrito, não a sua intenção."
+    },
+    {
+      type: "order",
+      q: "Coloque os passos na ordem para fazer um café",
+      hint: "Arraste para reordenar — de cima (primeiro) para baixo (último).",
+      // ordem correta:
+      correct: ["Pegar a xícara", "Colocar o pó", "Ligar a máquina", "Apertar o botão"],
+      okMsg: "Sequência perfeita! A ordem dos passos é tudo.",
+      noMsg: "Quase! Pense na ordem real: pegar a xícara antes de apertar o botão."
+    },
+    {
+      type: "choice",
+      q: "Se um programa tem os passos na ordem errada, o que acontece?",
+      opts: ["Ele faz a coisa errada, mesmo sem dar \"erro\"", "Ele se corrige sozinho", "Nada acontece"],
+      answer: 0,
+      okMsg: "Isso mesmo. Ordem errada = resultado errado, mesmo sem mensagem de erro.",
+      noMsg: "O computador não se corrige. Ordem errada gera resultado errado, silenciosamente."
     }
   ]
 };
 
-// ---- Estado da gamificação (determinístico, em memória) ----
-const state = {
-  step: 0,
-  xp: 0,
-  xpForLevel: 100,
-  lives: 3,
-  streak: 3,
-  solved: false,
-};
+const KEYS = ["A","B","C","D"];
+const state = { i:0, lives:3, xp:0, correct:0, answered:0, attempts:0, sel:null, orderArr:null, locked:false };
 
-let pyodide = null;
+const $ = id=>document.getElementById(id);
+const screen=$("screen"), checkBtn=$("checkBtn"), skipBtn=$("skipBtn"),
+      feedback=$("feedback"), toast=$("toast");
 
-// ---- DOM refs ----
-const $ = id => document.getElementById(id);
-const editor = $("editor"), output = $("output"), runBtn = $("runBtn"),
-      hintBtn = $("hintBtn"), nextBtn = $("nextBtn"), hint = $("hint"),
-      toast = $("toast");
+function render(){
+  const s = TOPIC.screens[state.i];
+  state.sel=null; state.locked=false; state.attempts=0;
+  skipBtn.classList.remove("show");
+  setCheck(false);
+  updateProgress();
 
-// ---- Boot Pyodide ----
-async function boot(){
-  const t0 = performance.now();
-  try{
-    pyodide = await loadPyodide();
-    const ms = Math.round(performance.now() - t0);
-    $("loader").style.display = "none";
-    loadStep();
-    // Telemetria do teste: quanto demorou carregar (critério: aceitável em 4G)
-    console.log(`[TESTE] Pyodide carregou em ${ms}ms`);
-    showToast(`⚡ Python pronto em ${(ms/1000).toFixed(1)}s`);
-  }catch(e){
-    $("loader").innerHTML = `<p class="big">Não foi possível carregar o Python</p>
-      <p>Verifique sua conexão e recarregue a página. (Erro: ${e.message})</p>`;
+  let html = `<div class="crumb">${TOPIC.crumb}</div>`;
+
+  if(s.type==="concept"){
+    html += `
+      <div class="concept-icon">${s.icon}</div>
+      <div class="h-title">${s.title}</div>
+      <div class="concept-text">${s.text}</div>
+      <div class="example"><div class="lbl">${s.exampleLabel}</div><div class="txt">${s.exampleHtml}</div></div>`;
+    // concept also shows its check question right below
+    html += `<div style="height:22px"></div>
+      <div class="q-text">${s.check.q}</div>
+      <div class="opts" id="opts">` +
+      s.check.opts.map((o,idx)=>optHtml(o,idx)).join("") + `</div>`;
+    screen.innerHTML = html;
+    wireOpts(()=>{}); // selecting enables check
+    checkBtn.textContent = "Verificar";
+  }
+  else if(s.type==="choice"){
+    html += `<div class="q-text">${s.q}</div>
+      <div class="opts" id="opts">` + s.opts.map((o,idx)=>optHtml(o,idx)).join("") + `</div>`;
+    screen.innerHTML = html; wireOpts(()=>{});
+  }
+  else if(s.type==="vf"){
+    html += `<div class="q-text">${s.q}</div><div class="q-sub">${s.sub}</div>
+      <div class="opts vf" id="opts">
+        ${optHtml("Verdadeiro",1)}${optHtml("Falso",0)}
+      </div>`;
+    screen.innerHTML = html; wireOpts(()=>{});
+  }
+  else if(s.type==="order"){
+    state.orderArr = shuffle([...s.correct]);
+    html += `<div class="q-text">${s.q}</div><div class="order-hint">${s.hint}</div>
+      <div class="order-list" id="orderList">` +
+      state.orderArr.map((t,idx)=>orderItemHtml(t,idx)).join("") + `</div>`;
+    screen.innerHTML = html;
+    wireOrder();
+    setCheck(true); // order always has an arrangement -> can check anytime
   }
 }
 
-// ---- Render a step ----
-function loadStep(){
-  const s = LESSON.steps[state.step];
-  state.solved = false;
-  $("eyebrow").textContent = LESSON.topic + " · " + (state.step+1) + "/" + LESSON.steps.length;
-  $("title").textContent = s.title;
-  $("desc").innerHTML = s.desc;
-  $("hint").innerHTML = s.hint;
-  $("hint").classList.remove("show");
-  editor.value = s.starter;
-  output.className = "output";
-  output.textContent = "";
-  nextBtn.classList.remove("show");
-  runBtn.style.display = "block";
-  hintBtn.style.display = "block";
-  runBtn.disabled = false;
+function optHtml(label,idx){
+  return `<button class="opt" data-idx="${idx}">
+    <span class="key">${KEYS[idx]}</span><span>${label}</span></button>`;
+}
+function orderItemHtml(label,idx){
+  return `<div class="order-item" draggable="true" data-label="${label}">
+    <span class="grip">⠿</span><span class="num">${idx+1}</span><span>${label}</span></div>`;
 }
 
-// ---- Run code through Pyodide (deterministic check) ----
-async function runCode(){
-  if(!pyodide) return;
-  runBtn.disabled = true;
-  output.className = "output";
-  const s = LESSON.steps[state.step];
-  const t0 = performance.now();
+function wireOpts(){
+  screen.querySelectorAll(".opt").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(state.locked) return;
+      screen.querySelectorAll(".opt").forEach(b=>b.classList.remove("sel"));
+      btn.classList.add("sel");
+      state.sel = parseInt(btn.dataset.idx);
+      setCheck(true);
+    });
+  });
+}
 
-  // Capture stdout
-  let captured = "";
-  pyodide.setStdout({ batched: (txt)=>{ captured += txt + "\n"; } });
-  pyodide.setStderr({ batched: ()=>{} });
+/* drag & drop ordering (touch + mouse via HTML5 DnD with fallback) */
+function wireOrder(){
+  const list = $("orderList");
+  let dragEl=null;
+  list.querySelectorAll(".order-item").forEach(item=>{
+    item.addEventListener("dragstart",e=>{dragEl=item;item.classList.add("dragging")});
+    item.addEventListener("dragend",()=>{item.classList.remove("dragging");renumber()});
+    item.addEventListener("dragover",e=>{
+      e.preventDefault();
+      const after = getAfter(list,e.clientY);
+      if(after==null) list.appendChild(dragEl);
+      else list.insertBefore(dragEl,after);
+    });
+  });
+  // touch fallback: tap to move down (simple, mobile-friendly)
+  list.querySelectorAll(".order-item").forEach(item=>{
+    let touchY=0;
+    item.addEventListener("touchstart",e=>{touchY=e.touches[0].clientY;item.classList.add("dragging")},{passive:true});
+    item.addEventListener("touchmove",e=>{
+      e.preventDefault();
+      const y=e.touches[0].clientY;
+      const after=getAfter(list,y);
+      if(after==null) list.appendChild(item);
+      else if(after!==item) list.insertBefore(item,after);
+    },{passive:false});
+    item.addEventListener("touchend",()=>{item.classList.remove("dragging");renumber()});
+  });
+}
+function getAfter(list,y){
+  const els=[...list.querySelectorAll(".order-item:not(.dragging)")];
+  return els.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0 && offset>closest.offset) return {offset,element:child};
+    return closest;
+  },{offset:-Infinity}).element || null;
+}
+function renumber(){
+  $("orderList").querySelectorAll(".order-item").forEach((it,idx)=>{
+    it.querySelector(".num").textContent=idx+1;
+  });
+}
 
-  let errored = false, errMsg = "";
-  try{
-    await pyodide.runPythonAsync(editor.value);
-  }catch(e){
-    errored = true;
-    errMsg = String(e.message || e);
+function setCheck(ready){
+  checkBtn.classList.toggle("ready",ready);
+  checkBtn.classList.toggle("idle",!ready);
+  checkBtn.disabled=!ready;
+}
+
+function check(){
+  const s = TOPIC.screens[state.i];
+  state.locked=true;
+  let isCorrect=false, explain="";
+
+  if(s.type==="concept"){
+    isCorrect = state.sel===s.check.answer;
+    explain = isCorrect ? "Você entendeu a ideia central." : s.check.wrongHint;
+    paintOpts(s.check.answer);
+  }else if(s.type==="choice"||s.type==="vf"){
+    isCorrect = state.sel===s.answer;
+    explain = isCorrect ? s.okMsg : s.noMsg;
+    paintOpts(s.answer);
+  }else if(s.type==="order"){
+    const cur=[...$("orderList").querySelectorAll(".order-item")].map(i=>i.dataset.label);
+    isCorrect = JSON.stringify(cur)===JSON.stringify(s.correct);
+    explain = isCorrect ? s.okMsg : s.noMsg;
+    paintOrder(cur,s.correct);
   }
-  const ms = Math.round(performance.now() - t0);
-  console.log(`[TESTE] Execução levou ${ms}ms`);
 
-  runBtn.disabled = false;
-  const clean = captured.trim();
-
-  if(errored){
-    // Show the LAST line of the Python error (most useful for a beginner)
-    const lines = errMsg.trim().split("\n");
-    const last = lines[lines.length-1];
-    output.className = "output err show";
-    output.textContent = "✕ Seu código tem um erro:\n\n" + last +
-      "\n\nDica: confira sintaxe (== , : , indentação). Ou toque em \"Não entendi\".";
-    loseLife();
-    return;
-  }
-
-  // Deterministic success check: expected substring in stdout
-  if(clean.toLowerCase().includes(s.expect.toLowerCase())){
-    output.className = "output ok show";
-    output.textContent = "✓ Saída:\n" + clean + "\n\nMandou bem! +" + s.xp + " XP";
-    win(s.xp);
+  state.answered++;
+  if(isCorrect){
+    state.correct++; state.xp+=10;
+    showFeedback(true,"Mandou bem!",explain);
   }else{
-    output.className = "output err show";
-    output.textContent = "Saída:\n" + (clean || "(vazio)") +
-      "\n\nQuase! Esperávamos algo como: \"" + s.expect + "\". Tente de novo.";
+    state.attempts++;
     loseLife();
+    if(state.attempts>=3){
+      // allow skip after 3 tries -> mark topic for review
+      showFeedback(false,"Vamos revisar depois",explain+" Este tópico vai voltar na revisão.");
+      skipBtn.classList.add("show");
+    }else{
+      showFeedback(false,"Quase lá",explain+` (tentativa ${state.attempts}/3)`);
+    }
   }
 }
 
-// ---- Gamification: win ----
-function win(xp){
-  if(state.solved) return;
-  state.solved = true;
-  state.xp = Math.min(state.xp + xp, state.xpForLevel);
-  updateXp(true);
-  runBtn.style.display = "none";
-  hintBtn.style.display = "none";
-  nextBtn.classList.add("show");
-  showToast("✓ +" + xp + " XP");
+function paintOpts(answerIdx){
+  screen.querySelectorAll(".opt").forEach(b=>{
+    b.classList.add("disabled");
+    const idx=parseInt(b.dataset.idx);
+    if(idx===answerIdx) b.classList.add("correct");
+    else if(idx===state.sel) b.classList.add("wrong");
+  });
+}
+function paintOrder(cur,correct){
+  $("orderList").querySelectorAll(".order-item").forEach((it,idx)=>{
+    it.setAttribute("draggable","false");
+    it.classList.add(cur[idx]===correct[idx]?"correct":"wrong");
+  });
 }
 
-// ---- Gamification: lose a life ----
+function showFeedback(ok,head,text){
+  feedback.className="feedback "+(ok?"ok":"no")+" show";
+  $("fbHead").innerHTML=(ok?"✓ ":"✕ ")+head;
+  $("fbText").textContent=text;
+  $("fbBtn").textContent = ok ? "Continuar" : (state.attempts>=3 ? "Entendi" : "Tentar de novo");
+  $("fbBtn").onclick = ()=>{
+    feedback.classList.remove("show");
+    if(ok || state.attempts>=3){ advance(); }
+    else { // retry same screen
+      state.locked=false;
+      screen.querySelectorAll(".opt").forEach(b=>b.classList.remove("disabled","correct","wrong","sel"));
+      if(TOPIC.screens[state.i].type==="order"){
+        $("orderList").querySelectorAll(".order-item").forEach(it=>{
+          it.setAttribute("draggable","true");it.classList.remove("correct","wrong");
+        });
+      }else{ state.sel=null; setCheck(false); }
+    }
+  };
+}
+
+function advance(){
+  state.i++;
+  if(state.i>=TOPIC.screens.length){ finish(); return; }
+  render();
+}
+
+function finish(){
+  $("screen").style.display="none";
+  $("footer").style.display="none";
+  const acc = Math.round((state.correct/state.answered)*100);
+  $("dXp").textContent=state.xp;
+  $("dAcc").textContent=acc+"%";
+  $("doneMsg").textContent = acc>=70
+    ? "Você entendeu a lógica. Próximo tópico liberado!"
+    : "Você concluiu — alguns pontos voltam na revisão da unidade.";
+  updateProgress(true);
+  $("done").classList.add("show");
+  showToast("🎉 +"+state.xp+" XP");
+}
+
 function loseLife(){
-  if(state.lives <= 0) return;
+  if(state.lives<=0) return;
   state.lives--;
-  const hearts = $("lives").querySelectorAll(".heart");
-  hearts.forEach((h,i)=> h.classList.toggle("lost", i >= state.lives));
-  if(state.lives === 0){
-    showToast("💔 Sem vidas! Mas no protótipo você continua.");
-    state.lives = 3; // prototype: refill so testing isn't blocked
-    setTimeout(()=> hearts.forEach(h=>h.classList.remove("lost")), 1200);
+  const h=$("lives").querySelectorAll(".heart");
+  h.forEach((el,i)=>el.classList.toggle("lost",i>=state.lives));
+  if(state.lives===0){
+    showToast("💔 No protótipo você continua mesmo sem vidas");
+    setTimeout(()=>{state.lives=3;h.forEach(el=>el.classList.remove("lost"))},1400);
   }
 }
 
-// ---- XP bar update ----
-function updateXp(bump){
-  const pct = (state.xp / state.xpForLevel) * 100;
-  const fill = $("xpFill");
-  fill.style.width = pct + "%";
-  $("xpLabel").textContent = state.xp + " / " + state.xpForLevel + " XP";
-  if(bump){ fill.classList.remove("bump"); void fill.offsetWidth; fill.classList.add("bump"); }
+function updateProgress(done){
+  const pct = done?100:(state.i/TOPIC.screens.length)*100;
+  $("prog").style.width=pct+"%";
 }
 
-// ---- Next step / complete ----
-function next(){
-  state.step++;
-  if(state.step >= LESSON.steps.length){
-    complete();
-  }else{
-    loadStep();
-  }
-}
+let tt;
+function showToast(m){toast.textContent=m;toast.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("show"),2200)}
 
-function complete(){
-  $("lessonBody").style.display = "none";
-  $("footer").style.display = "none";
-  $("finalXp").textContent = state.xp;
-  state.streak++;
-  $("streakN").textContent = state.streak;
-  $("finalStreak").textContent = state.streak;
-  $("complete").classList.add("show");
-  showToast("🔥 Streak agora é " + state.streak + "!");
-}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-// ---- Toast ----
-let toastTimer;
-function showToast(msg){
-  toast.textContent = msg;
-  toast.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=> toast.classList.remove("show"), 2200);
-}
+// skip / close
+skipBtn.addEventListener("click",()=>{feedback.classList.remove("show");showToast("↪ Tópico marcado para revisão");advance()});
+$("closeBtn").addEventListener("click",()=>showToast("(no app real, isto volta pra trilha)"));
+checkBtn.addEventListener("click",()=>{if(!checkBtn.disabled)check()});
 
-// ---- Hint ----
-function showHint(){
-  hint.classList.add("show");
-  hint.scrollIntoView({behavior:"smooth", block:"nearest"});
-}
-
-// ---- Tab key inserts spaces in editor ----
-editor.addEventListener("keydown", e=>{
-  if(e.key === "Tab"){
-    e.preventDefault();
-    const s = editor.selectionStart, en = editor.selectionEnd;
-    editor.value = editor.value.slice(0,s) + "    " + editor.value.slice(en);
-    editor.selectionStart = editor.selectionEnd = s + 4;
-  }
-});
-
-// ---- Wire events ----
-runBtn.addEventListener("click", runCode);
-hintBtn.addEventListener("click", showHint);
-nextBtn.addEventListener("click", next);
-
-// ---- Go ----
-boot();
+render();
 </script>
 </body>
 </html>
