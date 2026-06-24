@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CodePath BR — Protótipo</title>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+<style>
+  :root{
+    --bg:#f4f3f8;
+    --surface:#ffffff;
+    --ink:#1a1726;
+    --muted:#6b6580;
+    --line:#e4e1ee;
+    --indigo:#5b4bd6;
+    --indigo-soft:#ece9fb;
+    --green:#13a463;
+    --green-soft:#e3f6ec;
+    --red:#d6453b;
+    --red-soft:#fbe8e6;
+    --amber:#e8a01c;
+    --code-bg:#1c1830;
+    --code-ink:#e8e6f5;
+    --mono:'SF Mono',ui-monospace,'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5;
+    display:flex;justify-content:center;
+  }
+  .app{
+    width:100%;max-width:480px;min-height:100vh;background:var(--surface);
+    display:flex;flex-direction:column;position:relative;
+  }
+  @media(min-width:520px){.app{box-shadow:0 0 60px rgba(40,30,80,.08)}}
+
+  /* ---------- TOP BAR (gamification) ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 18px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--surface);z-index:5;
+  }
+  .lives{display:flex;gap:3px;font-size:18px;line-height:1}
+  .heart{transition:transform .25s, opacity .25s}
+  .heart.lost{opacity:.22;transform:scale(.8)}
+  .streak{
+    display:flex;align-items:center;gap:5px;font-weight:700;font-size:15px;
+    color:var(--amber);
+  }
+  .xp-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+  .xp-top{display:flex;justify-content:space-between;font-size:11px;
+    color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .xp-bar{height:9px;background:var(--indigo-soft);border-radius:99px;overflow:hidden}
+  .xp-fill{height:100%;width:0;background:linear-gradient(90deg,#7a6bff,var(--indigo));
+    border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .xp-fill.bump{animation:bump .5s ease}
+  @keyframes bump{0%{filter:brightness(1)}40%{filter:brightness(1.5)}100%{filter:brightness(1)}}
+
+  /* ---------- LESSON BODY ---------- */
+  .body{flex:1;padding:22px 18px 120px;overflow-y:auto}
+  .eyebrow{font-family:var(--mono);font-size:12px;color:var(--indigo);
+    font-weight:600;letter-spacing:.04em;margin-bottom:6px}
+  .prompt-title{font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+  .prompt-text{color:var(--muted);font-size:15px;margin-bottom:8px}
+  .prompt-text code{font-family:var(--mono);background:var(--indigo-soft);
+    color:var(--indigo);padding:1px 6px;border-radius:5px;font-size:13px}
+
+  .hint-box{
+    background:var(--green-soft);border:1px solid #bce6cf;border-radius:12px;
+    padding:12px 14px;margin:14px 0;font-size:14px;color:#0c6b41;
+    display:none;
+  }
+  .hint-box.show{display:block;animation:slidein .3s ease}
+  @keyframes slidein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+  /* ---------- CODE EDITOR ---------- */
+  .editor-wrap{
+    background:var(--code-bg);border-radius:14px;overflow:hidden;
+    margin-top:14px;box-shadow:0 6px 20px rgba(28,24,48,.18);
+  }
+  .editor-head{display:flex;align-items:center;gap:7px;padding:11px 14px;
+    border-bottom:1px solid rgba(255,255,255,.07)}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .editor-name{margin-left:auto;font-family:var(--mono);font-size:11px;
+    color:rgba(232,230,245,.5)}
+  .editor{
+    width:100%;background:transparent;border:none;outline:none;resize:none;
+    color:var(--code-ink);font-family:var(--mono);font-size:14px;line-height:1.7;
+    padding:14px;min-height:130px;tab-size:4;
+  }
+  .editor::selection{background:rgba(123,107,255,.4)}
+
+  /* ---------- OUTPUT ---------- */
+  .output{
+    font-family:var(--mono);font-size:13px;border-radius:12px;padding:13px 14px;
+    margin-top:12px;white-space:pre-wrap;word-break:break-word;display:none;
+  }
+  .output.show{display:block;animation:slidein .25s ease}
+  .output.ok{background:var(--green-soft);color:#0c6b41;border:1px solid #bce6cf}
+  .output.err{background:var(--red-soft);color:#a8261d;border:1px solid #f2c4bf}
+
+  /* ---------- FOOTER ACTIONS ---------- */
+  .footer{
+    position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+    padding:14px 18px;display:flex;flex-direction:column;gap:10px;
+  }
+  .row{display:flex;gap:10px}
+  .btn{
+    flex:1;border:none;border-radius:12px;padding:14px;font-family:var(--sans);
+    font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s, filter .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-run{background:var(--indigo);color:#fff}
+  .btn-run:disabled{background:#b6aef0;cursor:wait}
+  .btn-ghost{background:var(--indigo-soft);color:var(--indigo);flex:0 0 auto;padding:14px 18px}
+  .btn-next{background:var(--green);color:#fff;display:none}
+  .btn-next.show{display:block}
+
+  /* ---------- LOADING / TOAST ---------- */
+  .loader{
+    position:absolute;inset:0;background:var(--surface);z-index:20;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    padding:30px;text-align:center;
+  }
+  .spinner{width:38px;height:38px;border:4px solid var(--indigo-soft);
+    border-top-color:var(--indigo);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader p{color:var(--muted);font-size:14px;max-width:260px}
+  .loader .big{color:var(--ink);font-weight:700;font-size:17px}
+
+  .toast{
+    position:fixed;left:50%;top:72px;transform:translateX(-50%) translateY(-20px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:99px;
+    font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.35s;z-index:30;
+    display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(20,15,40,.25)
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .complete{text-align:center;padding:40px 24px;display:none}
+  .complete.show{display:block;animation:slidein .4s ease}
+  .complete .trophy{font-size:56px;margin-bottom:10px}
+  .complete h2{font-size:24px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
+  .complete p{color:var(--muted);margin-bottom:24px}
+  .stat-grid{display:flex;gap:12px;justify-content:center;margin-bottom:28px}
+  .stat{background:var(--indigo-soft);border-radius:14px;padding:16px 22px}
+  .stat .n{font-size:26px;font-weight:800;color:var(--indigo)}
+  .stat .l{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Loading overlay -->
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p class="big">Preparando o Python…</p>
+    <p>Estamos carregando o motor que roda seu código direto no navegador. Só na primeira vez.</p>
+  </div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="lives" id="lives">
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    </div>
+    <div class="streak"><span>🔥</span><span id="streakN">3</span></div>
+    <div class="xp-wrap">
+      <div class="xp-top"><span>NÍVEL 1</span><span id="xpLabel">0 / 100 XP</span></div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Lesson body -->
+  <div class="body" id="lessonBody">
+    <div class="eyebrow" id="eyebrow">PYTHON · CONDICIONAIS</div>
+    <h1 class="prompt-title" id="title"></h1>
+    <p class="prompt-text" id="desc"></p>
+    <div class="hint-box" id="hint"></div>
+
+    <div class="editor-wrap">
+      <div class="editor-head">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="editor-name">main.py</span>
+      </div>
+      <textarea class="editor" id="editor" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    </div>
+
+    <div class="output" id="output"></div>
+  </div>
+
+  <!-- Completion screen -->
+  <div class="complete" id="complete">
+    <div class="trophy">🏆</div>
+    <h2>Lição concluída!</h2>
+    <p>Você fechou o ciclo de hoje. Volte amanhã pra manter o 🔥.</p>
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="finalXp">0</div><div class="l">XP GANHO</div></div>
+      <div class="stat"><div class="n" id="finalStreak">4</div><div class="l">DIAS DE 🔥</div></div>
+    </div>
+  </div>
+
+  <!-- Footer actions -->
+  <div class="footer" id="footer">
+    <div class="row">
+      <button class="btn btn-ghost" id="hintBtn">Não entendi</button>
+      <button class="btn btn-run" id="runBtn">Rodar código</button>
+    </div>
+    <button class="btn btn-next" id="nextBtn">Continuar →</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CodePath BR — Protótipo do loop de UMA lição
+   Stack testada aqui: Pyodide (executa Python no browser) + gamificação
+   SEM IA. Tudo determinístico. Persistência simples em memória.
+   Objetivo do teste: validar que Pyodide roda aceitável no browser real.
+   ============================================================ */
+
+// ---- Conteúdo da lição (no produto real, isto vem do JSON gerado em batch) ----
+const LESSON = {
+  topic: "PYTHON · CONDICIONAIS",
+  steps: [
+    {
+      title: "Número par ou ímpar",
+      desc: "Complete o código para imprimir <code>\"par\"</code> quando o número for divisível por 2. A variável <code>numero</code> já existe.",
+      starter: "numero = 8\n\nif numero % 2 == 0:\n    print(\"impar\")  # corrija aqui\n",
+      // validação determinística: stdout esperado
+      expect: "par",
+      hint: "O operador <code>%</code> dá o resto da divisão. Se <code>numero % 2</code> é 0, o número é PAR. Veja o texto que está sendo impresso — está trocado.",
+      xp: 30
+    },
+    {
+      title: "Maior de idade",
+      desc: "Imprima <code>\"pode entrar\"</code> se <code>idade</code> for 18 ou mais. Caso contrário, imprima <code>\"não pode\"</code>.",
+      starter: "idade = 20\n\n# escreva seu if/else aqui\n",
+      expect: "pode entrar",
+      hint: "Use <code>if idade &gt;= 18:</code> numa linha, e <code>else:</code> na linha seguinte. Não esqueça os dois-pontos e a indentação (4 espaços).",
+      xp: 35
+    },
+    {
+      title: "Positivo, negativo ou zero",
+      desc: "A variável <code>n</code> vale -5. Imprima <code>\"negativo\"</code>. Use <code>if</code>.",
+      starter: "n = -5\n\n# seu código aqui\n",
+      expect: "negativo",
+      hint: "Compare <code>n</code> com 0. Se <code>n &lt; 0:</code> então é negativo. Lembre dos dois-pontos no fim e do print indentado embaixo.",
+      xp: 35
+    }
+  ]
+};
+
+// ---- Estado da gamificação (determinístico, em memória) ----
+const state = {
+  step: 0,
+  xp: 0,
+  xpForLevel: 100,
+  lives: 3,
+  streak: 3,
+  solved: false,
+};
+
+let pyodide = null;
+
+// ---- DOM refs ----
+const $ = id => document.getElementById(id);
+const editor = $("editor"), output = $("output"), runBtn = $("runBtn"),
+      hintBtn = $("hintBtn"), nextBtn = $("nextBtn"), hint = $("hint"),
+      toast = $("toast");
+
+// ---- Boot Pyodide ----
+async function boot(){
+  const t0 = performance.now();
+  try{
+    pyodide = await loadPyodide();
+    const ms = Math.round(performance.now() - t0);
+    $("loader").style.display = "none";
+    loadStep();
+    // Telemetria do teste: quanto demorou carregar (critério: aceitável em 4G)
+    console.log(`[TESTE] Pyodide carregou em ${ms}ms`);
+    showToast(`⚡ Python pronto em ${(ms/1000).toFixed(1)}s`);
+  }catch(e){
+    $("loader").innerHTML = `<p class="big">Não foi possível carregar o Python</p>
+      <p>Verifique sua conexão e recarregue a página. (Erro: ${e.message})</p>`;
+  }
+}
+
+// ---- Render a step ----
+function loadStep(){
+  const s = LESSON.steps[state.step];
+  state.solved = false;
+  $("eyebrow").textContent = LESSON.topic + " · " + (state.step+1) + "/" + LESSON.steps.length;
+  $("title").textContent = s.title;
+  $("desc").innerHTML = s.desc;
+  $("hint").innerHTML = s.hint;
+  $("hint").classList.remove("show");
+  editor.value = s.starter;
+  output.className = "output";
+  output.textContent = "";
+  nextBtn.classList.remove("show");
+  runBtn.style.display = "block";
+  hintBtn.style.display = "block";
+  runBtn.disabled = false;
+}
+
+// ---- Run code through Pyodide (deterministic check) ----
+async function runCode(){
+  if(!pyodide) return;
+  runBtn.disabled = true;
+  output.className = "output";
+  const s = LESSON.steps[state.step];
+  const t0 = performance.now();
+
+  // Capture stdout
+  let captured = "";
+  pyodide.setStdout({ batched: (txt)=>{ captured += txt + "\n"; } });
+  pyodide.setStderr({ batched: ()=>{} });
+
+  let errored = false, errMsg = "";
+  try{
+    await pyodide.runPythonAsync(editor.value);
+  }catch(e){
+    errored = true;
+    errMsg = String(e.message || e);
+  }
+  const ms = Math.round(performance.now() - t0);
+  console.log(`[TESTE] Execução levou ${ms}ms`);
+
+  runBtn.disabled = false;
+  const clean = captured.trim();
+
+  if(errored){
+    // Show the LAST line of the Python error (most useful for a beginner)
+    const lines = errMsg.trim().split("\n");
+    const last = lines[lines.length-1];
+    output.className = "output err show";
+    output.textContent = "✕ Seu código tem um erro:\n\n" + last +
+      "\n\nDica: confira sintaxe (== , : , indentação). Ou toque em \"Não entendi\".";
+    loseLife();
+    return;
+  }
+
+  // Deterministic success check: expected substring in stdout
+  if(clean.toLowerCase().includes(s.expect.toLowerCase())){
+    output.className = "output ok show";
+    output.textContent = "✓ Saída:\n" + clean + "\n\nMandou bem! +" + s.xp + " XP";
+    win(s.xp);
+  }else{
+    output.className = "output err show";
+    output.textContent = "Saída:\n" + (clean || "(vazio)") +
+      "\n\nQuase! Esperávamos algo como: \"" + s.expect + "\". Tente de novo.";
+    loseLife();
+  }
+}
+
+// ---- Gamification: win ----
+function win(xp){
+  if(state.solved) return;
+  state.solved = true;
+  state.xp = Math.min(state.xp + xp, state.xpForLevel);
+  updateXp(true);
+  runBtn.style.display = "none";
+  hintBtn.style.display = "none";
+  nextBtn.classList.add("show");
+  showToast("✓ +" + xp + " XP");
+}
+
+// ---- Gamification: lose a life ----
+function loseLife(){
+  if(state.lives <= 0) return;
+  state.lives--;
+  const hearts = $("lives").querySelectorAll(".heart");
+  hearts.forEach((h,i)=> h.classList.toggle("lost", i >= state.lives));
+  if(state.lives === 0){
+    showToast("💔 Sem vidas! Mas no protótipo você continua.");
+    state.lives = 3; // prototype: refill so testing isn't blocked
+    setTimeout(()=> hearts.forEach(h=>h.classList.remove("lost")), 1200);
+  }
+}
+
+// ---- XP bar update ----
+function updateXp(bump){
+  const pct = (state.xp / state.xpForLevel) * 100;
+  const fill = $("xpFill");
+  fill.style.width = pct + "%";
+  $("xpLabel").textContent = state.xp + " / " + state.xpForLevel + " XP";
+  if(bump){ fill.classList.remove("bump"); void fill.offsetWidth; fill.classList.add("bump"); }
+}
+
+// ---- Next step / complete ----
+function next(){
+  state.step++;
+  if(state.step >= LESSON.steps.length){
+    complete();
+  }else{
+    loadStep();
+  }
+}
+
+function complete(){
+  $("lessonBody").style.display = "none";
+  $("footer").style.display = "none";
+  $("finalXp").textContent = state.xp;
+  state.streak++;
+  $("streakN").textContent = state.streak;
+  $("finalStreak").textContent = state.streak;
+  $("complete").classList.add("show");
+  showToast("🔥 Streak agora é " + state.streak + "!");
+}
+
+// ---- Toast ----
+let toastTimer;
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toast.classList.remove("show"), 2200);
+}
+
+// ---- Hint ----
+function showHint(){
+  hint.classList.add("show");
+  hint.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+// ---- Tab key inserts spaces in editor ----
+editor.addEventListener("keydown", e=>{
+  if(e.key === "Tab"){
+    e.preventDefault();
+    const s = editor.selectionStart, en = editor.selectionEnd;
+    editor.value = editor.value.slice(0,s) + "    " + editor.value.slice(en);
+    editor.selectionStart = editor.selectionEnd = s + 4;
+  }
+});
+
+// ---- Wire events ----
+runBtn.addEventListener("click", runCode);
+hintBtn.addEventListener("click", showHint);
+nextBtn.addEventListener("click", next);
+
+// ---- Go ----
+boot();
+</script>
+</body>
+</html>
