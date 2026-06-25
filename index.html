@@ -2,476 +2,419 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:1234 http://127.0.0.1:1234; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>CodePath BR — Unidade 1: Lógica</title>
+<title>CodePath BR - Exercicio com IA</title>
 <style>
   :root{
-    --bg:#f4f3f8; --surface:#fff; --ink:#1a1726; --muted:#6b6580; --line:#e4e1ee;
-    --indigo:#5b4bd6; --indigo-soft:#ece9fb; --indigo-2:#7a6bff;
-    --green:#13a463; --green-soft:#e3f6ec; --green-line:#bce6cf;
-    --red:#d6453b; --red-soft:#fbe8e6; --red-line:#f2c4bf;
-    --amber:#e8a01c;
+    --bg:#f4f3f8;--surface:#fff;--ink:#1a1726;--muted:#6b6580;--line:#e4e1ee;
+    --indigo:#5b4bd6;--indigo-soft:#ece9fb;--indigo-2:#7a6bff;
+    --green:#13a463;--green-soft:#e3f6ec;--green-line:#bce6cf;
+    --amber:#e8a01c;--amber-soft:#fdf2dc;--amber-line:#f0d9a8;
+    --red:#d6453b;--red-soft:#fbe8e6;--red-line:#f2c4bf;
+    --ia:#8b3fae;--ia-soft:#f1e5f7;
+    --code-bg:#1c1830;--code-ink:#e8e6f5;
     --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;line-height:1.5;display:flex;justify-content:center}
-  .app{width:100%;max-width:480px;min-height:100vh;background:var(--surface);
-    display:flex;flex-direction:column;position:relative}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;display:flex;justify-content:center}
+  .app{width:100%;max-width:480px;min-height:100vh;background:var(--surface);display:flex;flex-direction:column;position:relative}
   @media(min-width:520px){.app{box-shadow:0 0 60px rgba(40,30,80,.08)}}
-
-  /* top bar */
-  .topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;
-    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:5}
-  .close{font-size:22px;color:var(--muted);background:none;border:none;cursor:pointer;
-    line-height:1;padding:2px 6px}
-  .progress{flex:1;height:11px;background:var(--indigo-soft);border-radius:99px;overflow:hidden}
-  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--indigo-2),var(--indigo));
-    border-radius:99px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
-  .lives{display:flex;gap:2px;font-size:16px}
-  .heart{transition:.25s}.heart.lost{opacity:.22;transform:scale(.8)}
-
-  /* body */
-  .body{flex:1;padding:24px 18px 130px;overflow-y:auto}
-  .crumb{font-family:var(--mono);font-size:11px;color:var(--indigo);font-weight:600;
-    letter-spacing:.04em;margin-bottom:14px;text-transform:uppercase}
-
-  /* concept screen */
-  .concept-icon{font-size:42px;margin-bottom:12px}
-  .h-title{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
-  .concept-text{font-size:16px;color:var(--ink);margin-bottom:18px;line-height:1.6}
-  .example{background:var(--indigo-soft);border-radius:14px;padding:14px 16px;margin-bottom:8px}
-  .example .lbl{font-size:11px;font-weight:700;color:var(--indigo);letter-spacing:.05em;
-    text-transform:uppercase;margin-bottom:5px}
-  .example .txt{font-size:15px;color:var(--ink)}
-  .example .txt b{color:var(--indigo)}
-
-  /* question */
-  .q-text{font-size:18px;font-weight:700;margin-bottom:6px;line-height:1.35}
-  .q-sub{font-size:14px;color:var(--muted);margin-bottom:18px}
-
-  /* options (multiple choice / VF) */
-  .opts{display:flex;flex-direction:column;gap:10px}
-  .opt{background:var(--surface);border:2px solid var(--line);border-radius:14px;
-    padding:15px 16px;font-size:15px;font-weight:600;cursor:pointer;text-align:left;
-    transition:.12s;color:var(--ink);display:flex;align-items:center;gap:12px}
-  .opt:hover{border-color:var(--indigo-2)}
-  .opt .key{width:26px;height:26px;border-radius:7px;background:var(--indigo-soft);
-    color:var(--indigo);display:grid;place-items:center;font-weight:800;font-size:13px;flex:0 0 auto}
-  .opt.sel{border-color:var(--indigo);background:var(--indigo-soft)}
-  .opt.correct{border-color:var(--green);background:var(--green-soft)}
-  .opt.correct .key{background:var(--green);color:#fff}
-  .opt.wrong{border-color:var(--red);background:var(--red-soft)}
-  .opt.wrong .key{background:var(--red);color:#fff}
-  .opt.disabled{pointer-events:none;opacity:.55}
-  .opts.vf{flex-direction:row}
-  .opts.vf .opt{flex:1;justify-content:center;font-size:16px}
-
-  /* order exercise */
-  .order-hint{font-size:13px;color:var(--muted);margin-bottom:12px}
-  .order-list{display:flex;flex-direction:column;gap:9px}
-  .order-item{background:var(--surface);border:2px solid var(--line);border-radius:12px;
-    padding:13px 14px;font-size:15px;font-weight:600;cursor:grab;display:flex;
-    align-items:center;gap:10px;user-select:none;transition:border-color .12s}
-  .order-item:active{cursor:grabbing}
-  .order-item.dragging{opacity:.4;border-color:var(--indigo)}
-  .order-item .grip{color:var(--muted);font-size:18px;flex:0 0 auto}
-  .order-item .num{width:22px;height:22px;border-radius:6px;background:var(--indigo-soft);
-    color:var(--indigo);display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto}
-  .order-item.correct{border-color:var(--green);background:var(--green-soft)}
-  .order-item.wrong{border-color:var(--red);background:var(--red-soft)}
-
-  /* feedback banner */
-  .feedback{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
-    padding:18px 18px 22px;border-radius:22px 22px 0 0;transform:translateY(110%);
-    transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:15}
-  .feedback.show{transform:translateY(0)}
-  .feedback.ok{background:var(--green-soft);border-top:2px solid var(--green-line)}
-  .feedback.no{background:var(--red-soft);border-top:2px solid var(--red-line)}
-  .fb-head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;margin-bottom:4px}
-  .feedback.ok .fb-head{color:#0c6b41}
-  .feedback.no .fb-head{color:#a8261d}
-  .fb-text{font-size:14px;margin-bottom:14px}
-  .feedback.ok .fb-text{color:#0c6b41}
-  .feedback.no .fb-text{color:#a8261d}
-  .fb-btn{width:100%;border:none;border-radius:13px;padding:15px;font-size:16px;
-    font-weight:800;cursor:pointer;color:#fff;font-family:var(--sans)}
-  .feedback.ok .fb-btn{background:var(--green)}
-  .feedback.no .fb-btn{background:var(--red)}
-
-  /* footer (check button) */
-  .footer{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);
-    padding:14px 18px}
-  .check{width:100%;border:none;border-radius:14px;padding:16px;font-size:16px;
-    font-weight:800;cursor:pointer;font-family:var(--sans);transition:.15s}
-  .check.ready{background:var(--indigo);color:#fff}
-  .check.idle{background:var(--indigo-soft);color:#a59ce0;cursor:not-allowed}
-  .skip{width:100%;background:none;border:none;color:var(--muted);font-weight:700;
-    font-size:14px;padding:12px;margin-top:4px;cursor:pointer;display:none}
-  .skip.show{display:block}
-
-  /* complete */
-  .done{text-align:center;padding:50px 24px;display:none}
-  .done.show{display:block;animation:pop .4s ease}
-  @keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
-  .done .tro{font-size:60px;margin-bottom:12px}
-  .done h2{font-size:25px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
-  .done p{color:var(--muted);margin-bottom:26px}
-  .done .stats{display:flex;gap:12px;justify-content:center;margin-bottom:30px}
-  .done .st{background:var(--indigo-soft);border-radius:16px;padding:18px 24px}
-  .done .st .n{font-size:28px;font-weight:800;color:var(--indigo)}
-  .done .st .l{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;letter-spacing:.03em}
-  .done .next-unit{background:var(--green-soft);border:1px solid var(--green-line);
-    border-radius:14px;padding:14px;color:#0c6b41;font-weight:700;font-size:14px}
-
-  .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-20px);
-    background:var(--ink);color:#fff;padding:10px 18px;border-radius:99px;font-weight:700;
-    font-size:13px;opacity:0;pointer-events:none;transition:.35s;z-index:30}
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .back{font-size:22px;color:var(--muted);background:none;border:none;cursor:pointer;line-height:1}
+  .crumb{font-family:var(--mono);font-size:11px;color:var(--ia);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .pill{margin-left:auto;font-size:10px;font-weight:800;background:var(--ia-soft);color:var(--ia);padding:4px 9px;border-radius:99px}
+  .body{flex:1;padding:22px 18px 40px;overflow-y:auto}
+  .scr{display:none}
+  .scr.show{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .icon-lg{font-size:44px;margin-bottom:12px}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-bottom:10px}
+  .lead{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
+  .lead b{color:var(--ink)}
+  .choice{border:2px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;cursor:pointer;transition:.14s;display:flex;gap:14px;align-items:flex-start;background:var(--surface);text-align:left;width:100%;font-family:var(--sans)}
+  .choice:hover{border-color:var(--indigo-2);transform:translateY(-1px)}
+  .choice.rec{border-color:var(--ia);background:var(--ia-soft)}
+  .choice .cic{font-size:28px;flex:0 0 auto;margin-top:2px}
+  .choice .ct{flex:1}
+  .choice .ctt{font-size:16px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+  .choice .rectag{font-size:9px;font-weight:800;background:var(--ia);color:#fff;padding:2px 7px;border-radius:99px;letter-spacing:.04em}
+  .choice .ctd{font-size:13px;color:var(--muted);line-height:1.45}
+  .choice .arrow{font-size:18px;color:var(--indigo);font-weight:800;align-self:center}
+  .step{display:flex;gap:13px;margin-bottom:16px}
+  .step-n{width:28px;height:28px;border-radius:50%;background:var(--ia);color:#fff;font-weight:800;font-size:14px;display:grid;place-items:center;flex:0 0 auto}
+  .step-b{flex:1}
+  .step-t{font-weight:700;font-size:15px;margin-bottom:3px}
+  .step-d{font-size:13.5px;color:var(--muted);line-height:1.5}
+  .step-d a{color:var(--ia);font-weight:600}
+  .step-d code{font-family:var(--mono);background:var(--ia-soft);color:var(--ia);padding:1px 6px;border-radius:5px;font-size:12px}
+  .status-box{border-radius:14px;padding:14px 16px;margin:18px 0;display:flex;align-items:center;gap:12px;font-weight:600;font-size:14px}
+  .status-box.checking{background:var(--amber-soft);border:1px solid var(--amber-line);color:#8a5e08}
+  .status-box.ok{background:var(--green-soft);border:1px solid var(--green-line);color:#0c6b41}
+  .status-box.fail{background:var(--red-soft);border:1px solid var(--red-line);color:#a8261d}
+  .spin{width:20px;height:20px;border:3px solid rgba(0,0,0,.12);border-top-color:currentColor;border-radius:50%;animation:spin 1s linear infinite;flex:0 0 auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .editor-wrap{background:var(--code-bg);border-radius:14px;overflow:hidden;margin:14px 0;box-shadow:0 6px 20px rgba(28,24,48,.18)}
+  .editor-head{display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .dot{width:11px;height:11px;border-radius:50%}.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .editor-name{margin-left:auto;font-family:var(--mono);font-size:11px;color:rgba(232,230,245,.5)}
+  .editor{width:100%;background:transparent;border:none;outline:none;resize:none;color:var(--code-ink);font-family:var(--mono);font-size:14px;line-height:1.7;padding:14px;min-height:120px;tab-size:4}
+  .task{background:var(--ia-soft);border-radius:12px;padding:13px 15px;margin-bottom:6px;font-size:14px;line-height:1.5}
+  .task .tl{font-size:11px;font-weight:800;color:var(--ia);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+  .task code{font-family:var(--mono);background:#fff;color:var(--ia);padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .out{font-family:var(--mono);font-size:13px;border-radius:12px;padding:13px 14px;margin-top:12px;white-space:pre-wrap;word-break:break-word;display:none;line-height:1.5}
+  .out.show{display:block}
+  .out.ok{background:var(--green-soft);color:#0c6b41;border:1px solid var(--green-line)}
+  .out.err{background:var(--red-soft);color:#a8261d;border:1px solid var(--red-line)}
+  .out.ai{background:var(--ia-soft);color:#5e2a78;border:1px solid #dcc5ea}
+  .out .ai-head{font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .footer{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:14px 18px;display:flex;flex-direction:column;gap:9px}
+  .btn{width:100%;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;font-family:var(--sans);transition:.13s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--ia);color:#fff}
+  .btn-primary:disabled{background:#d8c2e6;cursor:wait}
+  .btn-ghost{background:var(--bg);color:var(--muted)}
+  .btn-green{background:var(--green);color:#fff;display:none}
+  .btn-green.show{display:block}
+  .mini{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+  .mini a{color:var(--ia);cursor:pointer;font-weight:600}
+  .hide{display:none!important}
+  .devbar{background:var(--ink);padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .devbar .l{color:#8b86a0;font-size:11px;font-weight:700;font-family:var(--mono)}
+  .devbtn{background:#2d2842;color:#cfc9e8;border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer}
+  .toast{position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-16px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:99px;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:40;max-width:90%;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="topbar">
-    <button class="close" id="closeBtn">✕</button>
-    <div class="progress"><div class="progress-fill" id="prog"></div></div>
-    <div class="lives" id="lives"><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span></div>
+    <button class="back" id="backBtn">&lsaquo;</button>
+    <span class="crumb">Trilha IA &middot; Projeto-prova</span>
+    <span class="pill">&#129302; IA</span>
   </div>
 
-  <div class="body" id="screen"><!-- rendered by JS --></div>
+  <div class="body">
 
-  <div class="done" id="done">
-    <div class="tro">🎉</div>
-    <h2>Tópico concluído!</h2>
-    <p id="doneMsg">Você entendeu a ideia. Bora pra próxima.</p>
-    <div class="stats">
-      <div class="st"><div class="n" id="dXp">0</div><div class="l">XP</div></div>
-      <div class="st"><div class="n" id="dAcc">0%</div><div class="l">ACERTOS</div></div>
+    <div class="scr show" id="scrChoice">
+      <div class="icon-lg">&#129302;</div>
+      <h1>Este exercicio usa IA pra te corrigir</h1>
+      <p class="lead">Voce vai escrever um programa e receber uma <b>correcao inteligente</b>, como um professor revisando. Pra isso funcionar sem custo e sem expor nada, a IA roda <b>no seu proprio computador</b>. Como prefere fazer?</p>
+      <button class="choice rec" id="choicePC">
+        <span class="cic">&#128187;</span>
+        <span class="ct">
+          <span class="ctt">No computador <span class="rectag">Recomendado</span></span>
+          <span class="ctd">Com IA corrigindo de verdade. Precisa instalar uma IA gratuita (uma vez so). Te mostro como.</span>
+        </span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <button class="choice" id="choiceMobile">
+        <span class="cic">&#128241;</span>
+        <span class="ct">
+          <span class="ctt">Aqui mesmo / sem IA</span>
+          <span class="ctd">Correcao automatica por testes. Funciona em qualquer aparelho, na hora. Voce completa o exercicio do mesmo jeito.</span>
+        </span>
+        <span class="arrow">&rsaquo;</span>
+      </button>
+      <p class="mini" id="deviceNote"></p>
     </div>
-    <div class="next-unit" id="nextUnit">▶ Próximo tópico desbloqueado</div>
+
+    <div class="scr" id="scrPC">
+      <div class="icon-lg">&#128187;</div>
+      <h1>Ligue a IA no seu computador</h1>
+      <p class="lead">Leva ~5 min na primeira vez. Depois e so abrir o LM Studio e ligar o servidor.</p>
+      <div class="step"><div class="step-n">1</div><div class="step-b"><div class="step-t">Baixe o LM Studio</div><div class="step-d">E gratis. Acesse <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer">lmstudio.ai</a> e instale para o seu sistema (Windows, Mac ou Linux).</div></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-b"><div class="step-t">Baixe um modelo leve</div><div class="step-d">No LM Studio, busque um modelo pequeno (ex: <code>Llama 3.2 3B</code> ou <code>Qwen2.5 3B</code>) e baixe. Quanto menor, mais rapido no seu PC.</div></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-b"><div class="step-t">Ligue o servidor local</div><div class="step-d">Na aba <code>Developer</code> (ou <code>Local Server</code>), clique em <b>Start Server</b>. Ele liga em <code>localhost:1234</code>. Ative a opcao de CORS se houver.</div></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-b"><div class="step-t">Volte aqui e conecte</div><div class="step-d">Com o servidor ligado, toque em "Procurar IA" abaixo.</div></div></div>
+      <div class="status-box checking" id="statusBox" style="display:none"><div class="spin" id="statusSpin"></div><span id="statusText">Procurando a IA local...</span></div>
+    </div>
+
+    <div class="scr" id="scrAI">
+      <div class="task"><div class="tl">Seu desafio</div>Escreva uma funcao Python <code>saudacao(nome)</code> que retorne <code>"Ola, &lt;nome&gt;!"</code>. Exemplo: <code>saudacao("Ana")</code> deve dar <code>"Ola, Ana!"</code></div>
+      <div class="editor-wrap"><div class="editor-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="editor-name">solucao.py</span></div><textarea class="editor" id="editorAI" spellcheck="false">def saudacao(nome):
+    # escreva seu codigo aqui
+    pass</textarea></div>
+      <div class="out" id="outAI"></div>
+    </div>
+
+    <div class="scr" id="scrDet">
+      <div class="task"><div class="tl">Seu desafio</div>Escreva uma funcao Python <code>saudacao(nome)</code> que retorne <code>"Ola, &lt;nome&gt;!"</code>. Exemplo: <code>saudacao("Ana")</code> deve dar <code>"Ola, Ana!"</code></div>
+      <div class="editor-wrap"><div class="editor-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="editor-name">solucao.py</span></div><textarea class="editor" id="editorDet" spellcheck="false">def saudacao(nome):
+    # escreva seu codigo aqui
+    pass</textarea></div>
+      <div class="out" id="outDet"></div>
+      <p class="mini">&#9989; Correcao automatica por testes &middot; funciona offline, na hora</p>
+    </div>
+
   </div>
 
   <div class="footer" id="footer">
-    <button class="check idle" id="checkBtn" disabled>Verificar</button>
-    <button class="skip" id="skipBtn">Pular por enquanto →</button>
+    <button class="btn btn-primary hide" id="btnDetectar">Procurar IA</button>
+    <button class="btn btn-ghost hide" id="btnVoltarEscolha">Voltar</button>
+    <button class="btn btn-primary hide" id="btnCorrigirAI">Pedir correcao da IA</button>
+    <button class="btn btn-primary hide" id="btnVerificarDet">Verificar</button>
+    <button class="btn btn-green hide" id="btnContinuar">Continuar &rarr;</button>
   </div>
+</div>
 
-  <div class="feedback" id="feedback">
-    <div class="fb-head" id="fbHead"></div>
-    <div class="fb-text" id="fbText"></div>
-    <button class="fb-btn" id="fbBtn">Continuar</button>
-  </div>
+<div class="devbar">
+  <span class="l">TESTE:</span>
+  <button class="devbtn" id="dvForcaPC">Forcar "e PC"</button>
+  <button class="devbtn" id="dvForcaCel">Forcar "e celular"</button>
+  <button class="devbtn" id="dvSimIA">Simular IA conectada</button>
+  <button class="devbtn" id="dvReset">Reiniciar</button>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   CodePath BR — Unidade 1: Lógica de Programação (protótipo navegável)
-   Tipos de tela: conceito+checagem, múltipla escolha, V/F, ordenar passos.
-   SEM código / SEM Pyodide / SEM IA. Tudo determinístico.
+   CodePath BR - Bifurcacao PC/Celular para exercicios de IA
+   - PC: instrucoes LM Studio + deteccao real (localhost:1234)
+   - Celular/Sem IA: validacao DETERMINISTICA via Pyodide
+   A escolha NAO e salva: pergunta sempre (o aparelho pode mudar).
+   Sem chave, sem custo, nada exposto.
    ============================================================ */
 
-// ----- Tópico 1.1 completo como conteúdo navegável -----
-const TOPIC = {
-  crumb: "MÓDULO 1 · UNIDADE 1 · TÓPICO 1.1",
-  title: "O que é um programa?",
-  screens: [
-    {
-      type: "concept",
-      icon: "📋",
-      title: "O que é um programa?",
-      text: "Um programa é como uma receita: uma lista de instruções que o computador segue, uma por uma, na ordem que você escreveu. Ele não adivinha nada — faz exatamente o que você manda.",
-      exampleLabel: "No mundo real",
-      exampleHtml: "Uma receita de bolo é um programa: <b>misture os ovos → adicione farinha → asse 40 min</b>. Trocar a ordem estraga o bolo.",
-      // a checagem que vem logo após o conceito
-      check: {
-        q: "O que o computador faz com as instruções de um programa?",
-        opts: ["Adivinha o que você quis dizer", "Segue exatamente, na ordem escrita", "Escolhe a ordem que achar melhor"],
-        answer: 1,
-        wrongHint: "O computador não adivinha — ele obedece ao pé da letra, na ordem dada."
-      }
-    },
-    {
-      type: "choice",
-      q: "Qual destes é um \"programa\" no dia a dia?",
-      opts: ["Uma foto", "Um manual de montagem de móvel", "Uma música"],
-      answer: 1,
-      okMsg: "Isso! Um manual é uma sequência de passos a seguir.",
-      noMsg: "Pense no que tem passos a seguir em ordem — como um manual de montagem."
-    },
-    {
-      type: "vf",
-      q: "Verdadeiro ou falso?",
-      sub: "\"Um computador faz o que você QUIS dizer, mesmo se você escrever errado.\"",
-      answer: false,
-      okMsg: "Exato. Ele faz o que você ESCREVEU, não o que você quis.",
-      noMsg: "Falso! O computador segue o que está escrito, não a sua intenção."
-    },
-    {
-      type: "order",
-      q: "Coloque os passos na ordem para fazer um café",
-      hint: "Arraste para reordenar — de cima (primeiro) para baixo (último).",
-      // ordem correta:
-      correct: ["Pegar a xícara", "Colocar o pó", "Ligar a máquina", "Apertar o botão"],
-      okMsg: "Sequência perfeita! A ordem dos passos é tudo.",
-      noMsg: "Quase! Pense na ordem real: pegar a xícara antes de apertar o botão."
-    },
-    {
-      type: "choice",
-      q: "Se um programa tem os passos na ordem errada, o que acontece?",
-      opts: ["Ele faz a coisa errada, mesmo sem dar \"erro\"", "Ele se corrige sozinho", "Nada acontece"],
-      answer: 0,
-      okMsg: "Isso mesmo. Ordem errada = resultado errado, mesmo sem mensagem de erro.",
-      noMsg: "O computador não se corrige. Ordem errada gera resultado errado, silenciosamente."
-    }
-  ]
-};
+var $ = function(id){ return document.getElementById(id); };
+var forcedDevice = null; // null = real; 'pc' | 'mobile' = forcado no teste
+var simAI = false;       // teste: finge IA conectada
+var pyodide = null;      // carregado sob demanda no modo deterministico
 
-const KEYS = ["A","B","C","D"];
-const state = { i:0, lives:3, xp:0, correct:0, answered:0, attempts:0, sel:null, orderArr:null, locked:false };
-
-const $ = id=>document.getElementById(id);
-const screen=$("screen"), checkBtn=$("checkBtn"), skipBtn=$("skipBtn"),
-      feedback=$("feedback"), toast=$("toast");
-
-function render(){
-  const s = TOPIC.screens[state.i];
-  state.sel=null; state.locked=false; state.attempts=0;
-  skipBtn.classList.remove("show");
-  setCheck(false);
-  updateProgress();
-
-  let html = `<div class="crumb">${TOPIC.crumb}</div>`;
-
-  if(s.type==="concept"){
-    html += `
-      <div class="concept-icon">${s.icon}</div>
-      <div class="h-title">${s.title}</div>
-      <div class="concept-text">${s.text}</div>
-      <div class="example"><div class="lbl">${s.exampleLabel}</div><div class="txt">${s.exampleHtml}</div></div>`;
-    // concept also shows its check question right below
-    html += `<div style="height:22px"></div>
-      <div class="q-text">${s.check.q}</div>
-      <div class="opts" id="opts">` +
-      s.check.opts.map((o,idx)=>optHtml(o,idx)).join("") + `</div>`;
-    screen.innerHTML = html;
-    wireOpts(()=>{}); // selecting enables check
-    checkBtn.textContent = "Verificar";
-  }
-  else if(s.type==="choice"){
-    html += `<div class="q-text">${s.q}</div>
-      <div class="opts" id="opts">` + s.opts.map((o,idx)=>optHtml(o,idx)).join("") + `</div>`;
-    screen.innerHTML = html; wireOpts(()=>{});
-  }
-  else if(s.type==="vf"){
-    html += `<div class="q-text">${s.q}</div><div class="q-sub">${s.sub}</div>
-      <div class="opts vf" id="opts">
-        ${optHtml("Verdadeiro",1)}${optHtml("Falso",0)}
-      </div>`;
-    screen.innerHTML = html; wireOpts(()=>{});
-  }
-  else if(s.type==="order"){
-    state.orderArr = shuffle([...s.correct]);
-    html += `<div class="q-text">${s.q}</div><div class="order-hint">${s.hint}</div>
-      <div class="order-list" id="orderList">` +
-      state.orderArr.map((t,idx)=>orderItemHtml(t,idx)).join("") + `</div>`;
-    screen.innerHTML = html;
-    wireOrder();
-    setCheck(true); // order always has an arrangement -> can check anytime
-  }
+function ehCelular(){
+  if(forcedDevice) return forcedDevice === 'mobile';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
-function optHtml(label,idx){
-  return `<button class="opt" data-idx="${idx}">
-    <span class="key">${KEYS[idx]}</span><span>${label}</span></button>`;
-}
-function orderItemHtml(label,idx){
-  return `<div class="order-item" draggable="true" data-label="${label}">
-    <span class="grip">⠿</span><span class="num">${idx+1}</span><span>${label}</span></div>`;
-}
-
-function wireOpts(){
-  screen.querySelectorAll(".opt").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      if(state.locked) return;
-      screen.querySelectorAll(".opt").forEach(b=>b.classList.remove("sel"));
-      btn.classList.add("sel");
-      state.sel = parseInt(btn.dataset.idx);
-      setCheck(true);
-    });
+function showScr(id){
+  ['scrChoice','scrPC','scrAI','scrDet'].forEach(function(s){
+    $(s).classList.toggle('show', s===id);
   });
+  // footer buttons visibility
+  setBtns(id);
 }
-
-/* drag & drop ordering (touch + mouse via HTML5 DnD with fallback) */
-function wireOrder(){
-  const list = $("orderList");
-  let dragEl=null;
-  list.querySelectorAll(".order-item").forEach(item=>{
-    item.addEventListener("dragstart",e=>{dragEl=item;item.classList.add("dragging")});
-    item.addEventListener("dragend",()=>{item.classList.remove("dragging");renumber()});
-    item.addEventListener("dragover",e=>{
-      e.preventDefault();
-      const after = getAfter(list,e.clientY);
-      if(after==null) list.appendChild(dragEl);
-      else list.insertBefore(dragEl,after);
-    });
-  });
-  // touch fallback: tap to move down (simple, mobile-friendly)
-  list.querySelectorAll(".order-item").forEach(item=>{
-    let touchY=0;
-    item.addEventListener("touchstart",e=>{touchY=e.touches[0].clientY;item.classList.add("dragging")},{passive:true});
-    item.addEventListener("touchmove",e=>{
-      e.preventDefault();
-      const y=e.touches[0].clientY;
-      const after=getAfter(list,y);
-      if(after==null) list.appendChild(item);
-      else if(after!==item) list.insertBefore(item,after);
-    },{passive:false});
-    item.addEventListener("touchend",()=>{item.classList.remove("dragging");renumber()});
-  });
-}
-function getAfter(list,y){
-  const els=[...list.querySelectorAll(".order-item:not(.dragging)")];
-  return els.reduce((closest,child)=>{
-    const box=child.getBoundingClientRect();
-    const offset=y-box.top-box.height/2;
-    if(offset<0 && offset>closest.offset) return {offset,element:child};
-    return closest;
-  },{offset:-Infinity}).element || null;
-}
-function renumber(){
-  $("orderList").querySelectorAll(".order-item").forEach((it,idx)=>{
-    it.querySelector(".num").textContent=idx+1;
-  });
-}
-
-function setCheck(ready){
-  checkBtn.classList.toggle("ready",ready);
-  checkBtn.classList.toggle("idle",!ready);
-  checkBtn.disabled=!ready;
-}
-
-function check(){
-  const s = TOPIC.screens[state.i];
-  state.locked=true;
-  let isCorrect=false, explain="";
-
-  if(s.type==="concept"){
-    isCorrect = state.sel===s.check.answer;
-    explain = isCorrect ? "Você entendeu a ideia central." : s.check.wrongHint;
-    paintOpts(s.check.answer);
-  }else if(s.type==="choice"||s.type==="vf"){
-    isCorrect = state.sel===s.answer;
-    explain = isCorrect ? s.okMsg : s.noMsg;
-    paintOpts(s.answer);
-  }else if(s.type==="order"){
-    const cur=[...$("orderList").querySelectorAll(".order-item")].map(i=>i.dataset.label);
-    isCorrect = JSON.stringify(cur)===JSON.stringify(s.correct);
-    explain = isCorrect ? s.okMsg : s.noMsg;
-    paintOrder(cur,s.correct);
-  }
-
-  state.answered++;
-  if(isCorrect){
-    state.correct++; state.xp+=10;
-    showFeedback(true,"Mandou bem!",explain);
-  }else{
-    state.attempts++;
-    loseLife();
-    if(state.attempts>=3){
-      // allow skip after 3 tries -> mark topic for review
-      showFeedback(false,"Vamos revisar depois",explain+" Este tópico vai voltar na revisão.");
-      skipBtn.classList.add("show");
-    }else{
-      showFeedback(false,"Quase lá",explain+` (tentativa ${state.attempts}/3)`);
-    }
-  }
-}
-
-function paintOpts(answerIdx){
-  screen.querySelectorAll(".opt").forEach(b=>{
-    b.classList.add("disabled");
-    const idx=parseInt(b.dataset.idx);
-    if(idx===answerIdx) b.classList.add("correct");
-    else if(idx===state.sel) b.classList.add("wrong");
-  });
-}
-function paintOrder(cur,correct){
-  $("orderList").querySelectorAll(".order-item").forEach((it,idx)=>{
-    it.setAttribute("draggable","false");
-    it.classList.add(cur[idx]===correct[idx]?"correct":"wrong");
-  });
-}
-
-function showFeedback(ok,head,text){
-  feedback.className="feedback "+(ok?"ok":"no")+" show";
-  $("fbHead").innerHTML=(ok?"✓ ":"✕ ")+head;
-  $("fbText").textContent=text;
-  $("fbBtn").textContent = ok ? "Continuar" : (state.attempts>=3 ? "Entendi" : "Tentar de novo");
-  $("fbBtn").onclick = ()=>{
-    feedback.classList.remove("show");
-    if(ok || state.attempts>=3){ advance(); }
-    else { // retry same screen
-      state.locked=false;
-      screen.querySelectorAll(".opt").forEach(b=>b.classList.remove("disabled","correct","wrong","sel"));
-      if(TOPIC.screens[state.i].type==="order"){
-        $("orderList").querySelectorAll(".order-item").forEach(it=>{
-          it.setAttribute("draggable","true");it.classList.remove("correct","wrong");
-        });
-      }else{ state.sel=null; setCheck(false); }
-    }
+function setBtns(id){
+  var map = {
+    scrChoice: [],
+    scrPC: ['btnDetectar','btnVoltarEscolha'],
+    scrAI: ['btnCorrigirAI'],
+    scrDet: ['btnVerificarDet']
   };
+  ['btnDetectar','btnVoltarEscolha','btnCorrigirAI','btnVerificarDet','btnContinuar'].forEach(function(b){
+    $(b).classList.add('hide');
+  });
+  (map[id]||[]).forEach(function(b){ $(b).classList.remove('hide'); });
+  $('footer').style.display = (map[id] && map[id].length) ? 'flex' : 'none';
 }
 
-function advance(){
-  state.i++;
-  if(state.i>=TOPIC.screens.length){ finish(); return; }
-  render();
+function toast(m){
+  var t=$('toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove('show');},2400);
 }
 
-function finish(){
-  $("screen").style.display="none";
-  $("footer").style.display="none";
-  const acc = Math.round((state.correct/state.answered)*100);
-  $("dXp").textContent=state.xp;
-  $("dAcc").textContent=acc+"%";
-  $("doneMsg").textContent = acc>=70
-    ? "Você entendeu a lógica. Próximo tópico liberado!"
-    : "Você concluiu — alguns pontos voltam na revisão da unidade.";
-  updateProgress(true);
-  $("done").classList.add("show");
-  showToast("🎉 +"+state.xp+" XP");
+/* ---------- ESCOLHA ---------- */
+function renderChoiceNote(){
+  $('deviceNote').textContent = ehCelular()
+    ? 'Detectamos que voce esta no celular. A IA local nao roda aqui, mas a correcao por testes funciona normal.'
+    : 'Detectamos que voce esta no computador. Da pra usar a IA local.';
 }
 
-function loseLife(){
-  if(state.lives<=0) return;
-  state.lives--;
-  const h=$("lives").querySelectorAll(".heart");
-  h.forEach((el,i)=>el.classList.toggle("lost",i>=state.lives));
-  if(state.lives===0){
-    showToast("💔 No protótipo você continua mesmo sem vidas");
-    setTimeout(()=>{state.lives=3;h.forEach(el=>el.classList.remove("lost"))},1400);
+$('choicePC').addEventListener('click', function(){
+  if(ehCelular()){
+    toast('No celular a IA local nao roda. Abra no computador para este modo.');
+    // ainda deixamos ver as instrucoes, mas avisamos
   }
+  showScr('scrPC');
+});
+$('choiceMobile').addEventListener('click', function(){ showScr('scrDet'); });
+$('btnVoltarEscolha').addEventListener('click', function(){ showScr('scrChoice'); });
+
+/* ---------- DETECCAO LM STUDIO ---------- */
+function interpretarDeteccao(res){
+  if(res.ok && res.models && res.models.length>0) return {estado:'conectado', msg:'IA encontrada: '+res.models[0]};
+  if(res.ok) return {estado:'sem_modelo', msg:'Servidor ligado, mas sem modelo carregado. Carregue um modelo no LM Studio.'};
+  if(res.erro==='cors') return {estado:'cors', msg:'A IA respondeu mas bloqueou o acesso (CORS). Ative CORS no LM Studio ou rode via http://localhost.'};
+  return {estado:'offline', msg:'Nao encontrei a IA. Confira se o LM Studio esta aberto e o servidor ligado.'};
 }
 
-function updateProgress(done){
-  const pct = done?100:(state.i/TOPIC.screens.length)*100;
-  $("prog").style.width=pct+"%";
+function detectarLMStudio(){
+  // teste manual
+  if(simAI) return Promise.resolve({ok:true, models:['llama-3.2-3b (simulado)']});
+  return new Promise(function(resolve){
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 3500);
+    fetch('http://localhost:1234/v1/models', {signal:ctrl.signal})
+      .then(function(r){ clearTimeout(timer); return r.json(); })
+      .then(function(j){
+        var models = (j && j.data) ? j.data.map(function(m){return m.id;}) : [];
+        resolve({ok:true, models:models});
+      })
+      .catch(function(e){
+        clearTimeout(timer);
+        // distingue CORS de conexao recusada e dificil no browser; tratamos generico
+        resolve({ok:false, erro: (e && e.name==='AbortError') ? 'timeout' : 'recusado'});
+      });
+  });
 }
 
-let tt;
-function showToast(m){toast.textContent=m;toast.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("show"),2200)}
+$('btnDetectar').addEventListener('click', function(){
+  var box=$('statusBox'), txt=$('statusText'), spin=$('statusSpin');
+  box.style.display='flex'; box.className='status-box checking';
+  spin.style.display='block'; txt.textContent='Procurando a IA local...';
+  $('btnDetectar').disabled=true;
+  detectarLMStudio().then(function(res){
+    var r=interpretarDeteccao(res);
+    $('btnDetectar').disabled=false;
+    if(r.estado==='conectado'){
+      box.className='status-box ok'; spin.style.display='none';
+      txt.textContent='Conectado! '+r.msg;
+      setTimeout(function(){ showScr('scrAI'); }, 900);
+    } else {
+      box.className='status-box fail'; spin.style.display='none';
+      txt.textContent=r.msg;
+    }
+  });
+});
 
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+/* ---------- MODO IA (correcao via LM Studio) ---------- */
+function corrigirComIA(codigo){
+  if(simAI){
+    // resposta simulada de professor (no real, vem do LM Studio)
+    var temOla = /Ola,/.test(codigo) || /Ol[aá],/.test(codigo);
+    var temReturn = /return/.test(codigo);
+    var temFstring = /f["']/.test(codigo) || /\.format|\+/.test(codigo);
+    if(temReturn && temOla && temFstring){
+      return Promise.resolve({aprovado:true, texto:'Muito bom! Sua funcao monta a saudacao corretamente com o nome. Codigo limpo e direto.'});
+    }
+    if(!temReturn) return Promise.resolve({aprovado:false, texto:'Quase la. Sua funcao precisa usar "return" para devolver o texto, nao "print". Tente trocar.'});
+    return Promise.resolve({aprovado:false, texto:'Voce esta no caminho. Garanta que o texto retornado inclua a palavra "Ola," e o nome recebido. Use uma f-string: f"Ola, {nome}!".'});
+  }
+  // chamada real ao LM Studio (formato OpenAI-compatible)
+  var body = {
+    model:'local',
+    messages:[
+      {role:'system', content:'Voce e um tutor de programacao. Avalie se a funcao Python saudacao(nome) retorna "Ola, <nome>!". Responda em PT-BR, curto, sem dar o codigo pronto. Comece com OK: se estiver correto ou ENTAO: se tiver erro.'},
+      {role:'user', content:codigo}
+    ],
+    temperature:0.3, max_tokens:200
+  };
+  return fetch('http://localhost:1234/v1/chat/completions',{
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  }).then(function(r){return r.json();}).then(function(j){
+    var txt = (j.choices && j.choices[0] && j.choices[0].message.content) || 'Sem resposta da IA.';
+    var aprovado = /^OK:/i.test(txt.trim());
+    return {aprovado:aprovado, texto:txt.replace(/^OK:|^ENTAO:/i,'').trim()};
+  }).catch(function(){
+    return {aprovado:false, texto:'Perdi a conexao com a IA local. Confira se o LM Studio continua ligado.'};
+  });
+}
 
-// skip / close
-skipBtn.addEventListener("click",()=>{feedback.classList.remove("show");showToast("↪ Tópico marcado para revisão");advance()});
-$("closeBtn").addEventListener("click",()=>showToast("(no app real, isto volta pra trilha)"));
-checkBtn.addEventListener("click",()=>{if(!checkBtn.disabled)check()});
+$('btnCorrigirAI').addEventListener('click', function(){
+  var code=$('editorAI').value;
+  var out=$('outAI');
+  out.className='out ai show';
+  out.innerHTML='<div class="ai-head">&#129302; Professor IA esta lendo...</div>';
+  $('btnCorrigirAI').disabled=true;
+  corrigirComIA(code).then(function(res){
+    $('btnCorrigirAI').disabled=false;
+    out.className='out '+(res.aprovado?'ok':'ai')+' show';
+    out.innerHTML='<div class="ai-head">'+(res.aprovado?'&#9989; Aprovado pela IA':'&#129302; Professor IA')+'</div>'+escapeHtml(res.texto);
+    if(res.aprovado) concluir();
+  });
+});
 
-render();
+/* ---------- MODO DETERMINISTICO (Pyodide + asserts) ---------- */
+function carregarPyodideSeNecessario(){
+  if(pyodide) return Promise.resolve(pyodide);
+  return new Promise(function(resolve, reject){
+    // Pyodide via CDN. No app real: versao fixada + SRI + CSP ajustada.
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+    s.onload=function(){ loadPyodide().then(function(py){ pyodide=py; resolve(py); }).catch(reject); };
+    s.onerror=function(){ reject(new Error('cdn')); };
+    document.head.appendChild(s);
+  });
+}
+
+function verificarDeterministico(code){
+  // roda o codigo do aluno + asserts. Retorna {ok, msg}
+  return carregarPyodideSeNecessario().then(function(py){
+    var testHarness =
+      code + "\n" +
+      "import json\n" +
+      "_res = []\n" +
+      "try:\n" +
+      "    _res.append(saudacao('Ana') == 'Ola, Ana!')\n" +
+      "    _res.append(saudacao('Bruno') == 'Ola, Bruno!')\n" +
+      "    _res.append(saudacao('') == 'Ola, !')\n" +
+      "except Exception as e:\n" +
+      "    print(json.dumps({'erro': str(e)}))\n" +
+      "else:\n" +
+      "    print(json.dumps({'passou': all(_res), 'detalhe': _res}))\n";
+    var captured='';
+    py.setStdout({batched:function(t){captured+=t;}});
+    return py.runPythonAsync(testHarness).then(function(){
+      try{
+        var r=JSON.parse(captured.trim().split('\n').pop());
+        if(r.erro) return {ok:false, msg:'Seu codigo deu erro: '+r.erro};
+        if(r.passou) return {ok:true, msg:'Passou em todos os testes! saudacao() funciona certinho.'};
+        return {ok:false, msg:'Quase! Os testes esperam exatamente "Ola, <nome>!". Confira a pontuacao e o espaco.'};
+      }catch(e){ return {ok:false, msg:'Nao consegui ler o resultado. Tente rodar de novo.'}; }
+    });
+  }).catch(function(){
+    return {ok:false, msg:'Nao consegui carregar o Python (precisa de internet na primeira vez).'};
+  });
+}
+
+$('btnVerificarDet').addEventListener('click', function(){
+  var out=$('outDet');
+  out.className='out ai show'; out.textContent='Rodando os testes...';
+  $('btnVerificarDet').disabled=true;
+  verificarDeterministico($('editorDet').value).then(function(res){
+    $('btnVerificarDet').disabled=false;
+    out.className='out '+(res.ok?'ok':'err')+' show';
+    out.textContent=(res.ok?'\u2713 ':'\u2717 ')+res.msg;
+    if(res.ok) concluir();
+  });
+});
+
+/* ---------- CONCLUSAO ---------- */
+function concluir(){
+  $('btnCorrigirAI').classList.add('hide');
+  $('btnVerificarDet').classList.add('hide');
+  $('btnContinuar').classList.remove('hide');
+  $('footer').style.display='flex';
+  toast('\uD83C\uDF89 Exercicio concluido! +50 XP');
+}
+$('btnContinuar').addEventListener('click', function(){ toast('(no app real: volta pra trilha de IA)'); });
+
+/* ---------- util ---------- */
+function escapeHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+$('backBtn').addEventListener('click', function(){ showScr('scrChoice'); });
+
+/* ---------- editor: Tab insere espacos ---------- */
+['editorAI','editorDet'].forEach(function(id){
+  $(id).addEventListener('keydown', function(e){
+    if(e.key==='Tab'){ e.preventDefault();
+      var s=this.selectionStart, en=this.selectionEnd;
+      this.value=this.value.slice(0,s)+'    '+this.value.slice(en);
+      this.selectionStart=this.selectionEnd=s+4;
+    }
+  });
+});
+
+/* ---------- DEV ---------- */
+$('dvForcaPC').addEventListener('click', function(){ forcedDevice='pc'; renderChoiceNote(); toast('Forcado: PC'); });
+$('dvForcaCel').addEventListener('click', function(){ forcedDevice='mobile'; renderChoiceNote(); toast('Forcado: celular'); });
+$('dvSimIA').addEventListener('click', function(){ simAI=true; toast('IA simulada ligada (deteccao e correcao vao fingir sucesso)'); });
+$('dvReset').addEventListener('click', function(){ forcedDevice=null; simAI=false; renderChoiceNote(); showScr('scrChoice'); $('outAI').className='out';$('outDet').className='out'; toast('Reiniciado'); });
+
+/* ---------- init ---------- */
+renderChoiceNote();
+showScr('scrChoice');
 </script>
 </body>
 </html>
